@@ -13,7 +13,7 @@ function provider() {
       keyName: 'GEMINI_API_KEY',
       key: gemini,
       baseUrl: process.env.AI_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta/openai',
-      models: [process.env.AI_MODEL, 'gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.1-flash-lite'],
+      models: [process.env.AI_MODEL, 'gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'],
       tokenCap: false,
     };
   }
@@ -214,11 +214,19 @@ module.exports = async function handler(req, res) {
   let upstream;
   let lastStatus = 0;
   let lastDetail = '';
+  // Free models are sometimes overloaded (HTTP 503) or rate-limited (429). Try each model in
+  // turn with a short wait for the first byte, then go round the list once more before giving up.
   const started = Date.now();
-  for (const model of models) {
+  const attempts = [...models, ...models];
+  for (let i = 0; i < attempts.length && !upstream; i++) {
+    const model = attempts[i];
+    if (i === models.length) await new Promise((r) => setTimeout(r, 1500));
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 15000);
+    let r;
     try {
-      upstream = await fetch(`${BASE_URL}/chat/completions`, {
-        signal: AbortSignal.timeout(45000),
+      r = await fetch(`${BASE_URL}/chat/completions`, {
+        signal: ctrl.signal,
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
         body: JSON.stringify({
@@ -229,19 +237,21 @@ module.exports = async function handler(req, res) {
         }),
       });
     } catch (err) {
-      console.error(ai.name, model, 'request failed after', Date.now() - started, 'ms:', String(err && err.message));
-      upstream = null;
+      clearTimeout(timer);
+      console.error(ai.name, model, 'no response after', Date.now() - started, 'ms:', String(err && err.message));
       lastStatus = 0;
       lastDetail = String(err && err.message);
       continue;
     }
-    console.log(ai.name, model, 'status', upstream.status, 'after', Date.now() - started, 'ms');
-    if (upstream.ok) break;
-    lastStatus = upstream.status;
-    lastDetail = await upstream.text().catch(() => '');
-    // Try the next model when this one is unknown, or when its own rate limit is used up.
-    const tryNext = lastStatus === 404 || lastStatus === 429 || lastStatus === 503 || (lastStatus === 400 && /model/i.test(lastDetail));
-    upstream = null;
+    clearTimeout(timer);
+    console.log(ai.name, model, 'status', r.status, 'after', Date.now() - started, 'ms');
+    if (r.ok) {
+      upstream = r;
+      break;
+    }
+    lastStatus = r.status;
+    lastDetail = await r.text().catch(() => '');
+    const tryNext = lastStatus === 404 || lastStatus === 429 || lastStatus >= 500 || (lastStatus === 400 && /model/i.test(lastDetail));
     if (!tryNext) break;
   }
 
@@ -252,6 +262,9 @@ module.exports = async function handler(req, res) {
     }
     if (lastStatus === 429) {
       return sendJson(res, 502, { error: 'CarGPT has reached its free usage limit for now. Wait a minute and try again.' });
+    }
+    if (lastStatus === 503 || lastStatus === 0) {
+      return sendJson(res, 502, { error: 'The free AI model is very busy right now. Wait a few seconds and try again.' });
     }
     return sendJson(res, 502, { error: 'CarGPT could not answer that right now. Try again in a moment.' });
   }
