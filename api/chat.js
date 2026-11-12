@@ -145,7 +145,41 @@ function buildMessages(body) {
   return out;
 }
 
+// GET /api/chat: a quick self-test that reports which model answers (never shows the key).
+async function health(res) {
+  const ai = provider();
+  if (!ai) return sendJson(res, 200, { connected: false, reason: 'No GEMINI_API_KEY (or OPENAI_API_KEY) is set for this deployment.' });
+  const results = [];
+  for (const model of [...new Set(ai.models.filter(Boolean))]) {
+    const t = Date.now();
+    try {
+      const r = await fetch(`${ai.baseUrl.replace(/\/$/, '')}/chat/completions`, {
+        method: 'POST',
+        signal: AbortSignal.timeout(20000),
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ai.key}` },
+        body: JSON.stringify({ model, messages: [{ role: 'user', content: 'Reply with the single word OK.' }] }),
+      });
+      const text = await r.text();
+      let detail = '';
+      if (!r.ok) {
+        try {
+          const j = JSON.parse(text);
+          detail = String((Array.isArray(j) ? j[0] : j).error?.message || '').slice(0, 240);
+        } catch {
+          detail = text.slice(0, 120);
+        }
+      }
+      results.push({ model, status: r.status, ms: Date.now() - t, detail });
+      if (r.ok) break;
+    } catch (err) {
+      results.push({ model, status: 0, ms: Date.now() - t, detail: String(err && err.message).slice(0, 120) });
+    }
+  }
+  return sendJson(res, 200, { connected: results.some((r) => r.status === 200), provider: ai.name, keyLength: ai.key.length, results });
+}
+
 module.exports = async function handler(req, res) {
+  if (req.method === 'GET') return health(res);
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return sendJson(res, 405, { error: 'Use POST.' });
@@ -180,9 +214,11 @@ module.exports = async function handler(req, res) {
   let upstream;
   let lastStatus = 0;
   let lastDetail = '';
+  const started = Date.now();
   for (const model of models) {
     try {
       upstream = await fetch(`${BASE_URL}/chat/completions`, {
+        signal: AbortSignal.timeout(45000),
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
         body: JSON.stringify({
@@ -193,8 +229,13 @@ module.exports = async function handler(req, res) {
         }),
       });
     } catch (err) {
-      return sendJson(res, 502, { error: 'CarGPT could not reach its AI model. Try again in a moment.' });
+      console.error(ai.name, model, 'request failed after', Date.now() - started, 'ms:', String(err && err.message));
+      upstream = null;
+      lastStatus = 0;
+      lastDetail = String(err && err.message);
+      continue;
     }
+    console.log(ai.name, model, 'status', upstream.status, 'after', Date.now() - started, 'ms');
     if (upstream.ok) break;
     lastStatus = upstream.status;
     lastDetail = await upstream.text().catch(() => '');
