@@ -920,7 +920,7 @@ function viewSettings() {
     </form>
     <section class="panel">
       <h2>Your data</h2>
-      <p>Your cars, reminders and chats are stored in this browser only. Chat messages and photos are sent to OpenAI to generate answers.</p>
+      <p>Your cars, reminders and chats are stored in this browser only. Chat messages and photos are sent to the AI provider (Google Gemini) to generate answers, and on its free tier Google may use them to improve its products, so avoid sharing personal details in chats.</p>
       <div class="row">
         <button class="btn ghost" data-action="export">Download a backup</button>
         <button class="btn ghost" data-action="import">Restore from backup</button>

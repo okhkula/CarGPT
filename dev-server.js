@@ -1,5 +1,5 @@
 // Local development server: serves the static app and runs the /api functions.
-// Usage: OPENAI_API_KEY=sk-... npm run dev   then open http://localhost:3000
+// Usage: GEMINI_API_KEY=your-key npm run dev   then open http://localhost:3000
 const http = require('http');
 const fs = require('fs');
 const path = require('path');

@@ -1,7 +1,34 @@
 // CarGPT chat endpoint. Runs as a Vercel serverless function.
-// Keeps the OpenAI key on the server and streams the reply back as plain text.
+// Keeps the AI key on the server and streams the reply back as plain text.
+//
+// Default provider: Google Gemini (free tier, key from https://aistudio.google.com/apikey).
+// Set GEMINI_API_KEY to use it. OPENAI_API_KEY is supported as a paid alternative.
+// Both are called through the OpenAI-compatible chat completions format.
 
-const BASE_URL = (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, '');
+function provider() {
+  const gemini = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  if (gemini) {
+    return {
+      name: 'Google Gemini',
+      keyName: 'GEMINI_API_KEY',
+      key: gemini,
+      baseUrl: process.env.AI_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta/openai',
+      models: [process.env.AI_MODEL, 'gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.1-flash-lite'],
+      tokenCap: false,
+    };
+  }
+  if (process.env.OPENAI_API_KEY) {
+    return {
+      name: 'OpenAI',
+      keyName: 'OPENAI_API_KEY',
+      key: process.env.OPENAI_API_KEY,
+      baseUrl: process.env.AI_BASE_URL || process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+      models: [process.env.AI_MODEL || process.env.OPENAI_MODEL, 'gpt-5.4-mini', 'gpt-4o-mini'],
+      tokenCap: true,
+    };
+  }
+  return null;
+}
 const MAX_MESSAGES = 20;
 const MAX_CHARS = 4000;
 const MAX_IMAGE_CHARS = 4_000_000;
@@ -123,12 +150,14 @@ module.exports = async function handler(req, res) {
     res.setHeader('Allow', 'POST');
     return sendJson(res, 405, { error: 'Use POST.' });
   }
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) {
+  const ai = provider();
+  if (!ai) {
     return sendJson(res, 503, {
-      error: 'CarGPT is not connected to OpenAI yet. Add OPENAI_API_KEY in the Vercel project settings, then redeploy.',
+      error: 'CarGPT is not connected to an AI model yet. Add GEMINI_API_KEY in the Vercel project settings, then redeploy.',
     });
   }
+  const key = ai.key;
+  const BASE_URL = ai.baseUrl.replace(/\/$/, '');
   const ip = String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
   if (rateLimited(ip)) {
     return sendJson(res, 429, { error: 'You are sending messages very quickly. Wait a few minutes and try again.' });
@@ -147,7 +176,7 @@ module.exports = async function handler(req, res) {
     return sendJson(res, 400, { error: err.userMessage || 'That message could not be read. Try again.' });
   }
 
-  const models = [...new Set([process.env.OPENAI_MODEL, 'gpt-5.4-mini', 'gpt-4o-mini'].filter(Boolean))];
+  const models = [...new Set(ai.models.filter(Boolean))];
   let upstream;
   let lastStatus = 0;
   let lastDetail = '';
@@ -160,25 +189,30 @@ module.exports = async function handler(req, res) {
           model,
           messages,
           stream: true,
-          max_completion_tokens: mode === 'detailed' ? 3000 : 1200,
+          ...(ai.tokenCap ? { max_completion_tokens: mode === 'detailed' ? 3000 : 1200 } : {}),
         }),
       });
     } catch (err) {
-      return sendJson(res, 502, { error: 'CarGPT could not reach OpenAI. Check your connection and try again.' });
+      return sendJson(res, 502, { error: 'CarGPT could not reach its AI model. Try again in a moment.' });
     }
     if (upstream.ok) break;
     lastStatus = upstream.status;
     lastDetail = await upstream.text().catch(() => '');
-    const modelProblem = lastStatus === 404 || (lastStatus === 400 && /model/i.test(lastDetail));
+    // Try the next model when this one is unknown, or when its own rate limit is used up.
+    const tryNext = lastStatus === 404 || lastStatus === 429 || lastStatus === 503 || (lastStatus === 400 && /model/i.test(lastDetail));
     upstream = null;
-    if (!modelProblem) break;
+    if (!tryNext) break;
   }
 
   if (!upstream) {
-    console.error('OpenAI error', lastStatus, lastDetail.slice(0, 500));
-    if (lastStatus === 401) return sendJson(res, 502, { error: 'OpenAI rejected the API key. Check OPENAI_API_KEY in the Vercel project settings.' });
-    if (lastStatus === 429) return sendJson(res, 502, { error: 'The OpenAI account has hit its rate limit or run out of credit. Check billing on the OpenAI dashboard.' });
-    return sendJson(res, 502, { error: 'OpenAI could not answer that right now. Try again in a moment.' });
+    console.error(ai.name, 'error', lastStatus, lastDetail.slice(0, 500));
+    if (lastStatus === 401 || lastStatus === 403 || (lastStatus === 400 && /api key/i.test(lastDetail))) {
+      return sendJson(res, 502, { error: `${ai.name} rejected the API key. Check ${ai.keyName} in the Vercel project settings.` });
+    }
+    if (lastStatus === 429) {
+      return sendJson(res, 502, { error: 'CarGPT has reached its free usage limit for now. Wait a minute and try again.' });
+    }
+    return sendJson(res, 502, { error: 'CarGPT could not answer that right now. Try again in a moment.' });
   }
 
   res.statusCode = 200;
