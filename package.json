@@ -1,0 +1,12 @@
+{
+  "name": "cargpt",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CarGPT - an AI car assistant and beginner-friendly virtual driving instructor",
+  "scripts": {
+    "dev": "node dev-server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
