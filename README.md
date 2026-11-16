@@ -2,6 +2,8 @@
 
 ![JavaScript](https://img.shields.io/badge/JavaScript-vanilla-F7DF1E?logo=javascript&logoColor=black) ![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=nodedotjs&logoColor=white) ![Gemini](https://img.shields.io/badge/AI-Google%20Gemini-4285F4?logo=googlegemini&logoColor=white) ![Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?logo=vercel&logoColor=white) ![No build step](https://img.shields.io/badge/build%20step-none-success)
 
+**🌐 Live demo: [cargpt-zeta.vercel.app](https://cargpt-zeta.vercel.app)**
+
 An AI-powered personal car assistant and beginner-friendly virtual driving instructor. CarGPT explains cars in plain language for new drivers, first-time owners and enthusiasts.
 
 ## ✨ Features
