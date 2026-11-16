@@ -1,8 +1,10 @@
-# CarGPT
+# 🚗 CarGPT
+
+![JavaScript](https://img.shields.io/badge/JavaScript-vanilla-F7DF1E?logo=javascript&logoColor=black) ![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=nodedotjs&logoColor=white) ![Gemini](https://img.shields.io/badge/AI-Google%20Gemini-4285F4?logo=googlegemini&logoColor=white) ![Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?logo=vercel&logoColor=white) ![No build step](https://img.shields.io/badge/build%20step-none-success)
 
 An AI-powered personal car assistant and beginner-friendly virtual driving instructor. CarGPT explains cars in plain language for new drivers, first-time owners and enthusiasts.
 
-## Features
+## ✨ Features
 
 - **Home dashboard** with a personal greeting, the main "Ask CarGPT" box, suggested questions, your primary car, maintenance reminders, overdue alerts and a tip of the day.
 - **AI chat** (Google Gemini free tier by default) focused on cars and driving, with **Brief** and **Detailed** answer modes, conversation memory, and a polite redirect for off-topic questions. Navigation questions count as driving-related.
@@ -16,7 +18,7 @@ An AI-powered personal car assistant and beginner-friendly virtual driving instr
 
 Cars, reminders, chats and settings are stored in the browser (localStorage). Only chat messages and attached photos are sent to the server, which forwards them to the AI provider.
 
-## Project structure
+## 🗂️ Project structure
 
 ```
 index.html          App shell
@@ -29,7 +31,7 @@ api/vehicles.js     Serverless function: car brands and models
 dev-server.js       Local development server
 ```
 
-## Run locally
+## ▶️ Run locally
 
 Requires Node.js 18 or newer. There are no dependencies to install.
 
@@ -38,7 +40,7 @@ GEMINI_API_KEY=your-key npm run dev
 # open http://localhost:3000
 ```
 
-## Deploy to Vercel
+## 🚀 Deploy to Vercel
 
 1. Import this repository in Vercel (framework preset: **Other**, no build command).
 2. Create a free Gemini API key at https://aistudio.google.com/apikey (no card needed).
@@ -49,6 +51,10 @@ The default model is `gemini-3.8-flash`, with other free Flash models as fallbac
 
 To use OpenAI instead (paid), set `OPENAI_API_KEY` and leave `GEMINI_API_KEY` unset.
 
-## Safety
+## ⚠️ Safety
 
 CarGPT gives general guidance and cannot inspect a vehicle. Have a qualified mechanic confirm anything safety-related.
+
+## 📄 License
+
+See [LICENSE](LICENSE).
