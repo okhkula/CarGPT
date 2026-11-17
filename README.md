@@ -1,6 +1,8 @@
 # 🚗 CarGPT
 
-![JavaScript](https://img.shields.io/badge/JavaScript-vanilla-F7DF1E?logo=javascript&logoColor=black) ![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=nodedotjs&logoColor=white) ![Gemini](https://img.shields.io/badge/AI-Google%20Gemini-4285F4?logo=googlegemini&logoColor=white) ![Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?logo=vercel&logoColor=white) ![No build step](https://img.shields.io/badge/build%20step-none-success)
+![JavaScript](https://img.shields.io/badge/JavaScript-vanilla-F7DF1E?logo=javascript&logoColor=black) ![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=nodedotjs&logoColor=white) ![Gemini](https://img.shields.io/badge/AI-Google%20Gemini-4285F4?logo=googlegemini&logoColor=white) ![Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?logo=vercel&logoColor=white) ![No build step](https://img.shields.io/badge/build%20step-none-success) ![Status](https://img.shields.io/badge/status-in%20development-orange) ![Last commit](https://img.shields.io/github/last-commit/okhkula/CarGPT?label=last%20updated)
+
+> 🚧 **Work in progress:** CarGPT is under active development. New features and improvements are added regularly, so things may change and some parts aren't finished yet.
 
 **🌐 Live demo: [cargpt-zeta.vercel.app](https://cargpt-zeta.vercel.app)**
 
@@ -19,6 +21,21 @@ An AI-powered personal car assistant and beginner-friendly virtual driving instr
 - **Settings**: display name, default answer length, units, light/dark theme, backup and restore.
 
 Cars, reminders, chats and settings are stored in the browser (localStorage). Only chat messages and attached photos are sent to the server, which forwards them to the AI provider.
+
+## 🗺️ Status & roadmap
+
+**Done so far**
+- [x] Home dashboard with greeting, suggested questions and tip of the day
+- [x] AI chat with Brief / Detailed modes, conversation memory and photo questions
+- [x] My Car (multiple cars, primary car)
+- [x] Brand and model search (NHTSA vPIC)
+- [x] Dashboard warning-light guide
+- [x] Maintenance reminders with overdue / due-soon status
+- [x] Chat History with search, rename and delete
+- [x] Settings, light/dark theme, backup and restore
+
+**Next up**
+- [ ] More features and improvements are being planned and will be listed here.
 
 ## 🗂️ Project structure
 
